@@ -1,5 +1,5 @@
-## LAB_02
-#**Laboratório da disciplina Processamento Digital de Imagens 2019**
+# LAB_02
+## **Laboratório da disciplina Processamento Digital de Imagens 2019**
 
 Repositório para os códigos desenvolvidos no segundo laboratório da disciplina PDI do curso de Engenharia Biomédica da UFPE.
 
