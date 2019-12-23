@@ -14,6 +14,7 @@ import ij.gui.PointRoi;
 import ij.gui.Roi;
 import ij.measure.ResultsTable;
 import ij.plugin.filter.PlugInFilter;
+import ij.process.ByteProcessor;
 import ij.process.ColorProcessor;
 import ij.process.ImageProcessor;
 
@@ -55,7 +56,7 @@ public class Region_Growing_Grupo_03 implements PlugInFilter {
 	public void run(ImageProcessor ip) {
 		Region_Growing binarizer = new Region_Growing(imp);
 		//ColorProcessor binIp = binarizer.createBackgroundSegmentation(ip);
-		ColorProcessor binIp = binarizer.createBackgroundSegmentation();
+		ByteProcessor binIp = binarizer.createBackgroundSegmentation();
 		// System.out.println("End segmentation");
 		this.givedRoi = binarizer.getGivedRoi();
 		binaryImp.setProcessor(binIp);
@@ -88,11 +89,16 @@ public class Region_Growing_Grupo_03 implements PlugInFilter {
 		Set<Color> colors = components.keySet();
 		for (Iterator<Color> iterator = colors.iterator(); iterator.hasNext();) {
 			Color color = (Color) iterator.next();
-			LinkedHashSet<Point> tempPoints = components.get(iterator.next());
-			for (Iterator<Point> iterator2 = tempPoints.iterator(); iterator2.hasNext();) {
+			LinkedHashSet<Point> points = components.get(color);
+			for (Iterator iterator2 = points.iterator(); iterator2.hasNext();) {
 				Point point = (Point) iterator2.next();
 				filteredIp.set(point.x, point.y, color.getRGB());
 			}
+//			LinkedHashSet<Point> tempPoints = components.get(iterator.next());
+//			for (Iterator<Point> iterator2 = tempPoints.iterator(); iterator2.hasNext();) {
+//				Point point = (Point) iterator2.next();
+//				filteredIp.set(point.x, point.y, color.getRGB());
+//			}
 		}
 		filteredImp.updateAndDraw();
 		// System.out.println("End filtering");

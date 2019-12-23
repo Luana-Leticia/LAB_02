@@ -34,10 +34,10 @@ public class Labeling_Binary_Image implements PlugInFilter {
 	public void run(ImageProcessor ip) {
 		// TODO Auto-generated method stub
 		//lines 37 until 41 were changed by me
-		int[] pixels1 = (int[]) ip.getPixels();
+		/*int[] pixels1 = (int[]) ip.getPixels();
 		for (int i = 0; i < 100; i++) {
 			System.out.print(pixels1[i]);
-		}	
+		}	*/
 		
 		
 		byte[] pixels = (byte[]) ip.getPixels();

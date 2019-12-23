@@ -3,11 +3,13 @@ package LAB_02;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.PriorityQueue;
 
 import ij.ImagePlus;
 import ij.gui.NewImage;
 import ij.gui.Roi;
 import ij.gui.WaitForUserDialog;
+import ij.process.ByteProcessor;
 import ij.process.ColorProcessor;
 import ij.process.ImageProcessor;
 
@@ -18,17 +20,18 @@ public class Region_Growing {
 	private ImagePlus imp;
 	private ImageProcessor ip;
 	private Roi GivedRoi;
-	private int[] binPixels;
-
+//	private int[] binPixels;
+	private byte[] binPixels;
+	
 	public Region_Growing(ImagePlus imp) {
 		// TODO Auto-generated constructor stub
 		this.imp = imp;
 		this.ip = imp.getProcessor();
 		this.w = imp.getWidth();
 		this.h = imp.getHeight();
-		this.binPixels = new int[w * h];
-		Arrays.fill(binPixels, 255);
-
+//		this.binPixels = new int[w * h];
+		this.binPixels = new byte[w * h];
+		Arrays.fill(binPixels, (byte) 255);
 	}
 
 	public Roi drawROI() {
@@ -47,13 +50,14 @@ public class Region_Growing {
 		return roiStat;
 	}
 
-	public ColorProcessor createBackgroundSegmentation() {
-
-		ImagePlus binaryImp = NewImage.createRGBImage("Binary Image", w, h, 1, NewImage.FILL_WHITE);
-		ColorProcessor binaryIp = (ColorProcessor) binaryImp.getProcessor();
-
+//	public ColorProcessor createBackgroundSegmentation() {
+	public ByteProcessor createBackgroundSegmentation() {
+		ImagePlus binaryImp = NewImage.createByteImage("Binary Image", w, h, 1, NewImage.FILL_WHITE);
+		//ColorProcessor binaryIp = binaryImp.getProcessor().convertToColorProcessor();
+		ByteProcessor binaryIp = (ByteProcessor) binaryImp.getProcessor();
+				
 		Roi givedRoi = drawROI();
-		System.out.println(givedRoi.toString());
+		//System.out.println(givedRoi.toString());
 		ROI_Statistics roiStat = calculateRoiStatistics(givedRoi);
 		// System.out.println(roiStat.toString());
 		double mean = roiStat.getMean();
@@ -61,58 +65,35 @@ public class Region_Growing {
 		System.out.print("desvio padrao:"+stdDev);
 		Point seed = givedRoi.getContainedPoints()[0]; // um ponto qualquer da roi, que, por consequência, é plano de
 														// fundo com certeza
+		int seedIndex = getIndex(seed.x, seed.y);
 
 		ArrayList<Point> connectedPoints = new ArrayList<Point>();
-		ArrayList<Point> backgroundPoints = new ArrayList<Point>();
 		connectedPoints.add(seed);
-		backgroundPoints.add(seed);
+		
+		PriorityQueue<Integer> connectedIndexes = new PriorityQueue<>();
+		PriorityQueue<Integer> backgroundIndexes = new PriorityQueue<>();
+		connectedIndexes.add(seedIndex);
+		backgroundIndexes.add(seedIndex);
 
 		while (!connectedPoints.isEmpty()) {
 			int a = connectedPoints.get(0).x;
 			int b = connectedPoints.get(0).y; // (a,b)=> ponto central atual
 
-			/*for (int i = a - 1; i < a + 1; i++) {
-				for (int j = b - 1; j < b + 1; j++) {
+			for (int i = a - 1; i <= a + 1; i++) {
+				for (int j = b - 1; j <= b + 1; j++) {
 					if ((isInside(i, j)) && (!isItself(i, j, a, b))) { // dentro da imagem e não é ele mesmo
 						Point p = new Point(i, j);
-						if ((obeysIntesityCriterion(i, j, mean, stdDev)) && (!isBackGround(connectedPoints, p))
-								&& (wasNeverVisited(backgroundPoints, p))) {
-						//if ((obeysIntesityCriterion(i, j, mean, stdDev)) && (!(connectedPoints.contains(p))) 
-								//&& (!(backgroundPoints.contains(p)))) { 
+						int tempIndex = getIndex(i, j);
+						if ((obeysIntesityCriterion(i, j, mean, stdDev)) && (isBackGround(connectedIndexes, tempIndex))
+								&& (!wasNeverVisited(backgroundIndexes, tempIndex))) {
 							connectedPoints.add(p);
-							markAsVisited(backgroundPoints, p);	
-							//System.out.print("n =" + connectedPoints.lenght);
-
+							markAsVisited(backgroundIndexes, tempIndex);	
 						} else {
-							// binaryIp.set(i, j, 0); // cor de componente
-							int index = getIndex(i, j);
-							binPixels[index] = 0;
+							binPixels[tempIndex] = 0;
 						}
-					}
-				}
-			}*/
-			
-			for (int i = a - 1; i < a + 1; i++) {
-			for (int j = b - 1; j < b + 1; j++) {
-				if ((isInside(i, j)) && (!isItself(i, j, a, b))) { // dentro da imagem e não é ele mesmo
-					Point p = new Point(i, j);
-					if (obeysIntesityCriterion(i, j, mean, stdDev)) {
-						if ((isBackGround(connectedPoints, p)) && (!wasNeverVisited(backgroundPoints, p))) {
-						} 
-						else {						
-							connectedPoints.add(p);
-							markAsVisited(backgroundPoints, p);	
-							//System.out.print("n =" + connectedPoints.lenght);
-						}
-					}
-					else {
-						// binaryIp.set(i, j, 0); // cor de componente
-						int index = getIndex(i, j);
-						binPixels[index] = 0;
 					}
 				}
 			}
-		}
 			connectedPoints.remove(0);
 		}
 
@@ -120,10 +101,10 @@ public class Region_Growing {
 		return binaryIp;
 	}
 
-	private void markAsVisited(ArrayList<Point> list, Point p) { // Pixel já visitado, classificado como background e
+	private void markAsVisited(PriorityQueue<Integer> queue, int index) { // Pixel já visitado, classificado como background e
 																	// retirado da lista iteradora => Não pode
 																	// participar de outra iteração
-		list.add(p);
+		queue.add(index);
 	}
 
 	private boolean obeysIntesityCriterion(int x, int y, double mean, double stdDev) {
@@ -131,10 +112,10 @@ public class Region_Growing {
 		return (Math.abs((double) (pix - mean)) <= 3 * stdDev);
 	}
 
-	private boolean isBackGround(ArrayList<Point> list, Point point) { // Pixel foi marcado como plano de fundo em
+	private boolean isBackGround(PriorityQueue<Integer> queue, int index) { // Pixel foi marcado como plano de fundo em
 																		// iteração anterior e ainda não teve vizinhaça
 																		// analisada
-		return (!list.contains(point));
+		return (!queue.contains(index));
 	}
 
 	private boolean isInside(int x, int y) { // dentro da imagem
@@ -149,9 +130,9 @@ public class Region_Growing {
 		return v * w + u;
 	}
 
-	private boolean wasNeverVisited(ArrayList<Point> list, Point p) { // Pixel é plano de fundo e não foi visitado em
+	private boolean wasNeverVisited(PriorityQueue<Integer> queue, int index) { // Pixel é plano de fundo e não foi visitado em
 																		// iterações anteriores
-		return list.contains(p);
+		return queue.contains(index);
 	}
 
 	public Roi getGivedRoi() {
